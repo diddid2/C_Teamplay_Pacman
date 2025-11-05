@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS //abcd
 #define _WIN32_WINNT 0x0600
 #include <windows.h>
 #include <stdio.h>
