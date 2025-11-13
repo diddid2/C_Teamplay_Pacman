@@ -7,8 +7,8 @@
 #include <stdbool.h>
 #include <wchar.h>
 
-#define MAP_ROWS 24
-#define MAP_COLS 48
+#define MAP_ROWS 23
+#define MAP_COLS 47
 #define SCREEN_ROWS (MAP_ROWS + 1)
 #define SCREEN_COLS MAP_COLS
 
@@ -691,17 +691,7 @@ int main() {
             while (!(GetAsyncKeyState(VK_RETURN) & 0x8000)) Sleep(50);
             break;
         }
-        if (player.lives <= 0) {
-            for (int i = 0; i < SCREEN_ROWS * SCREEN_COLS; i++) { frameBuffer[i].Char.UnicodeChar = L' '; frameBuffer[i].Attributes = 0; }
-            wchar_t g1[128] = L"======== 게임 오버 ========";
-            wchar_t g2[128]; swprintf(g2, 128, L"FINAL SCORE: %d", player.score);
-            int rr = 10, cc = 30;
-            for (int i = 0; g1[i]; i++) frameBuffer[(rr)*SCREEN_COLS + cc + i].Char.UnicodeChar = g1[i];
-            for (int i = 0; g2[i]; i++) frameBuffer[(rr + 2) * SCREEN_COLS + cc + i].Char.UnicodeChar = g2[i];
-            WriteConsoleOutputW(hOut, frameBuffer, bufSize, bufCoord, &writeRegion);
-            while (!(GetAsyncKeyState(VK_RETURN) & 0x8000)) Sleep(50);
-            break;
-        }
+       
 
         //게임 오버 화면
         if (player.lives <= 0) { show_game_over(hOut, player.score); break; }
