@@ -1,5 +1,3 @@
-//테스트
-
 #define _CRT_SECURE_NO_WARNINGS //ㅈㅂ
 #define _WIN32_WINNT 0x0600
 #include <windows.h>
@@ -26,6 +24,14 @@ typedef struct Ghost {
     bool alive, vulnerable;
 } Ghost;
 
+// 유령 AI 추가
+typedef enum { SCATTER, CHASE } GhostMode;
+GhostMode currentGhostMode = SCATTER;
+DWORD modeSwitchTime = 0;
+int modePhase = 0;
+
+DWORD phaseDurations[7] = { 7000, 20000, 7000, 20000, 5000, 20000, 5000 };
+
 bool coin[MAP_ROWS][MAP_COLS];
 bool powerPellet[MAP_ROWS][MAP_COLS];
 Player player;
@@ -44,30 +50,29 @@ DWORD ghostMoveInterval = 300;
 int currentDirR = 0, currentDirC = 0;
 
 wchar_t* wcmap[MAP_ROWS] = {
-    L"■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■",
-    L"■○············································○■",
-    L"■·■■■■·■■■■■■■·■■·■■■■■·■■■■■·■■■■■·■■·■■■■■■■·■",
-    L"■·■■■■·■■■■■■■·■■·■■■■■·■■■■■·■■■■■·■■·■■■■■■■·■",
-    L"■··············································■",
-    L"■·■■■■·■■·■■■■■■■■■■■·■■·■■■■······■■■■■■·■■■■·■",
-    L"■·■■■■·■■·■■■■■■■■■■■·■■·■■■■······■■■■■■·■■■■·■",
-    L"■······■■···■■········■■·············■■········■",
-    L"■■■■■■·■■·■■·■■·■■■■■·■■■■■■■■■■■■■■·■■·■■■■■■■■",
-    L"■■■■■■·■■·■■·■■·■■■■■·■■■■■■■■■■■■■■·■■·■■■■■■■■",
-    L"■························　　　　　　　　　·············■",
-    L"■·■■■■·■■·■■■■■■■■■■■·■■·　　　　　　　　　■■·■■■■■■■■■·■",
-    L"■·■■■■·■■·■■■■■■■■■■■·■■·　　　　　　　　　■■·■■■■■■■■■·■",
-    L"■·■■■■·■■················　　　　　　　　　··········■■·■",
-    L"■·■■■■·■■·■■■■■■■■■■·■■·■■■■■■■■■■·■■·■■■■■·■■·■",
-    L"■·■■■■·■■·■■■■■■■■■■·■■·■■■■■■■■■■·■■·■■■■■·■■·■",
-    L"■··········■■··································■",
-    L"■■■■■■·■■■■■·■■·■■■■■·■■·■■■■■·■■■·■■·■■■■■·■■■■",
-    L"■■■■■■·■■■■■·■■·■■■■■·■■·■■■■■·■■■·■■·■■■■■·■■■■",
-    L"■······■■■■■·············■■■■■·■■■····■■■■·····■",
-    L"■·■■■■·■■■■■·■■■■■·■■■■■·■■■■■·■■■■■·■■■■■·■■■·■",
-    L"■·■■■■·■■■■■·■■■■■·■■■■■·■■■■■·■■■■■·■■■■■·■■■·■",
-    L"■○······················●·····················○■",
-    L"■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■"
+    L"■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■",
+    L"■○·····················■·····················○■",
+    L"■·■■■■·■■■■■■■■·■■■■■■·■·■■■■■■·■■■■■■■■·■■■■·■",
+    L"■·■■■■·■■■■■■■■·■■■■■■·■·■■■■■■·■■■■■■■■·■■■■·■",
+    L"■·■·········································■·■",
+    L"■·■·■■■■■■■■■·■·■·■■■■■■■■■■■·■·■·■■■■■■■■■·■·■",
+    L"■·■····■■·····■·■······■······■·■·····■■····■·■",
+    L"■·■·■■·■■·■■■·■·■■■■■■·■·■■■■■■·■·■■■·■■·■■·■·■",
+    L"■·■·■■·■■·■■■·■·■　　　　　　　　　　　　　■　■·■■■·■■·■■·■·■",
+    L"■·■·■■·■■·····■·■　■■■■　　　■■■■　■·■·····■■·■■·■·■",
+    L"■·■·■■····■■■■■·■　■　　　　　　　　　■　■·■■■■■····■■·■·■",
+    L"■···■■■■■········　■　　　　●　　　　■　········■■■■■···■",
+    L"■·■·■■····■■■■■·■　■　　　　　　　　　■　■·■■■■■····■■·■·■",
+    L"■·■·■■·■■·····■·■　■■■■■■■■■■■　■·■·····■■·■■·■·■",
+    L"■·■·■■·■■·■■■·■·■　　　　　　　　　　t　　■·■·■■■·■■·■■·■·■",
+    L"■·■·■■·■■·■■■·■·■·■■■■■■■■■■■·■·■·■■■·■■·■■·■·■",
+    L"■·■····■■··············■··············■■····■·■",
+    L"■·■·■■■■■■■■■·■·■■■■■■·■·■■■■■■·■·■■■■■■■■■·■·■",
+    L"■·■·■■■■■■■■■·■·■······■······■·■·■■■■■■■■■·■·■",
+    L"■·■·············■·■■■■·■·■■■■·■·············■·■",
+    L"■·■·■■■■■■■■■■■·■·■■■■·■·■■■■·■·■■■■■■■■■■■·■·■",
+    L"■○·····················■·····················○■",
+    L"■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■"
 };
 
 void compose_frameBuffer_from_game_state();
@@ -154,6 +159,8 @@ void init_world() {
 
     globalVulnerable = false;
     powerEndTime = 0;
+    currentDirC = 0;
+    currentDirR = 0;
 
     // 유령이 4마리 미만이면 적당한 빈칸에 보정 배치
     for (int i = ghostCount; i < 4; i++) {
@@ -219,12 +226,21 @@ void compose_frameBuffer_from_game_state() {
             frameBuffer[idx].Attributes = FOREGROUND_BLUE | FOREGROUND_INTENSITY;
         }
         else {
+            // Chase 또는 Scatter 모드
             frameBuffer[idx].Char.UnicodeChar = L'G';
             WORD attr =
                 (i == 0 ? (FOREGROUND_RED | FOREGROUND_INTENSITY) :
-                    i == 1 ? (FOREGROUND_GREEN | FOREGROUND_INTENSITY) :
-                    i == 2 ? (FOREGROUND_BLUE | FOREGROUND_INTENSITY) :
+                    i == 1 ? (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE) :
+                    i == 2 ? (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY) :
                     (FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY));
+            // gtype을 사용하도록 색상 수정 (gtype: 0:Red, 1:Orange, 2:Blue, 3:Pink)
+            switch (ghosts[i].gtype)
+            {
+            case 0: attr = FOREGROUND_RED | FOREGROUND_INTENSITY; break;
+            case 1: attr = FOREGROUND_RED | FOREGROUND_GREEN; break;
+            case 2: attr = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY; break;
+            case 3: attr = FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY; break;
+            }
             frameBuffer[idx].Attributes = attr;
         }
     }
@@ -235,10 +251,10 @@ void compose_frameBuffer_from_game_state() {
         frameBuffer[idx].Char.UnicodeChar = L'C';
         frameBuffer[idx].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
     }
-     
+
     // UI 텍스트
     wchar_t ui[128];
-    swprintf(ui, 128, L" SCORE: %d   LIVES: %d ", player.score, player.lives);
+    swprintf(ui, 128, L" SCORE: %d    LIVES: %d ", player.score, player.lives);
     int startCol = 0; int uiRowIdx = (SCREEN_ROWS - 1) * SCREEN_COLS + startCol;
     for (int i = 0; ui[i] && startCol + i < SCREEN_COLS; i++) {
         frameBuffer[uiRowIdx + i].Char.UnicodeChar = ui[i];
@@ -283,7 +299,7 @@ void render_partial_updates(HANDLE hOut, bool forceFullWrite) {
     }
 }
 
-void move_ghost(Ghost* g) { // 유령 움직임
+void move_ghost(Ghost* g) { // 유령 움직임 NEW: 새로 유령들의 chase 상태 구현, 유령들마다 성격 구현 
     if (!g->alive) { g->r = g->sr; g->c = g->sc; g->alive = true; g->vulnerable = false; return; }
 
     int dr[4] = { -1, 0, 1, 0 };
@@ -303,7 +319,7 @@ void move_ghost(Ghost* g) { // 유령 움직임
 
         if (!is_wall(nr, nc)) { // 벽이 아니면
             valid_dirs[num_valid_dirs] = d; // 유효한 방향으로 추가
-            num_valid_dirs++;
+            num_valid_dirs++; // 유효한 방향 개수 증가
         }
     }
 
@@ -348,22 +364,80 @@ void move_ghost(Ghost* g) { // 유령 움직임
             }
         }
     }
+    else {
+        // CHASE, SCATTER
+        int targetR, targetC;
 
-    // 일반모드 or 추격 모드에서 유효한 'best_dir'를 찾지 못한 경우
-    if (best_dir == -1) {
-        // 직진 우선
-        bool continued = false;
-        for (int i = 0; i < num_valid_dirs; i++) {
-            if (valid_dirs[i] == g->dir) {
-                best_dir = g->dir;
-                continued = true;
+        if (currentGhostMode == SCATTER) {
+            // scatter 상태
+            switch (g->gtype) {
+            case 0: targetR = 1; targetC = MAP_COLS - 2; break;
+            case 1: targetR = MAP_ROWS - 2; targetC = 1; break;
+            case 2: targetR = MAP_ROWS - 2; targetC = MAP_COLS - 2; break;
+            case 3: targetR = 1; targetC = 1; break;
+            default: targetR = player.r; targetC = player.c; break;
+            }
+        }
+        else {
+
+            switch (g->gtype) {
+            case 0:
+                targetR = player.r;
+                targetC = player.c;
+                break;
+            case 1:
+                if (manhattan(g->r, g->c, player.r, player.c) > 8) {
+                    targetR = player.r;
+                    targetC = player.c;
+                }
+                else {
+                    targetR = MAP_ROWS - 2; targetC = 1;
+                }
+                break;
+            case 2:
+            {
+                int pivotR = player.r + (currentDirR * 2);
+                int pivotC = player.c + (currentDirC * 2);
+                if (currentDirR == -1 && currentDirC == 0) {
+                    pivotC -= 2;
+                }
+                int blinkyR = ghosts[0].r;
+                int blinkyC = ghosts[0].c;
+
+                int vecR = pivotR - blinkyR;
+                int vecC = pivotC - blinkyC;
+
+                targetR = blinkyR + (vecR * 2);
+                targetC = blinkyC + (vecC * 2); // 이 줄이 누락되었던 것 같습니다.
+                break;
+            }
+            case 3:
+            {
+                targetR = player.r + (currentDirR * 4);
+                targetC = player.c + (currentDirC * 4);
+
+                if (currentDirR == -1 && currentDirC == 0) {
+                    targetC -= 4;
+                }
+                break;
+            }
+            default:
+                targetR = player.r;
+                targetC = player.c;
                 break;
             }
         }
+        int min_dist = 1000000;
+        for (int i = 0; i < num_valid_dirs; i++) {
+            int d = valid_dirs[i];
+            int nr = g->r + dr[d];
+            int nc = g->c + dc[d];
+            int dist = manhattan(nr, nc, targetR, targetC);
 
-        // 랜덤 선택, 참고 영상에서의 RNG 문제 해결
-        if (!continued) {
-            best_dir = valid_dirs[rand() % num_valid_dirs];
+            if (dist < min_dist) {
+                min_dist = dist;
+                best_dir = d;
+            }
         }
     }
 
@@ -414,6 +488,11 @@ void check_collect_and_collision() {
                     ghosts[j].r = ghosts[j].sr; ghosts[j].c = ghosts[j].sc;
                     ghosts[j].alive = true; ghosts[j].vulnerable = false;
                 }
+                // NEW 상태 초기화
+                globalVulnerable = false;
+                currentGhostMode = SCATTER;
+                modePhase = 0;
+                modeSwitchTime = GetTickCount() + phaseDurations[0];
                 Sleep(600);
                 return;
             }
@@ -434,7 +513,7 @@ int main() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     for (int i = 0; i < SCREEN_ROWS * SCREEN_COLS; i++) { frameBuffer[i].Char.UnicodeChar = L' '; frameBuffer[i].Attributes = 0; }
     wchar_t* intro1 = L"==================================";
-    wchar_t* intro2 = L"===          Pac-Man!          ===";
+    wchar_t* intro2 = L"===       Pac-Man!       ===";
     wchar_t* intro3 = L"엔터 키를 누르면 게임이 시작됩니다";
     int r0 = 10, c0 = 33;
     for (int i = 0; intro1[i]; i++) frameBuffer[(r0)*SCREEN_COLS + c0 + i].Char.UnicodeChar = intro1[i];
@@ -449,6 +528,12 @@ int main() {
 
     system("cls");
     init_world();
+
+    // NEW
+    modeSwitchTime = GetTickCount() + phaseDurations[0];
+    currentGhostMode = SCATTER;
+    modePhase = 0;
+
     compose_frameBuffer_from_game_state();
     render_partial_updates(hOut, true);
 
@@ -467,49 +552,67 @@ int main() {
         lastTime = curTime;
 
         bool anyDirKey = false;
-        int newDirR = currentDirR, newDirC = currentDirC;
+        int newDirR = 0, newDirC = 0; // 나중에 수정할것
         if (GetAsyncKeyState(VK_LEFT) & 0x8000 || GetAsyncKeyState('A') & 0x8000) { newDirR = 0; newDirC = -1; anyDirKey = true; }
         else if (GetAsyncKeyState(VK_RIGHT) & 0x8000 || GetAsyncKeyState('D') & 0x8000) { newDirR = 0; newDirC = 1; anyDirKey = true; }
         if (GetAsyncKeyState(VK_UP) & 0x8000 || GetAsyncKeyState('W') & 0x8000) { newDirR = -1; newDirC = 0; anyDirKey = true; }
         else if (GetAsyncKeyState(VK_DOWN) & 0x8000 || GetAsyncKeyState('S') & 0x8000) { newDirR = 1; newDirC = 0; anyDirKey = true; }
 
+        // NEW
         if (anyDirKey) {
-            if (newDirR != currentDirR || newDirC != currentDirC) {
-                currentDirR = newDirR; currentDirC = newDirC;
-                playerMoveAcc = 0.0;
+
+            int nextR = player.r + newDirR;
+            int nextC = player.c + newDirC;
+            if (!is_wall(nextR, nextC)) {
+                if (newDirR != currentDirR || newDirC != currentDirC) {
+                    currentDirR = newDirR;
+                    currentDirC = newDirC;
+                    playerMoveAcc = 0.0;
+                }
             }
             else {
-                currentDirR = newDirR; currentDirC = newDirC;
+                // (수정) Code 2의 로직을 따라 이 'else' 블록은 비워둡니다.
+                // (기존 Code 1의 버그가 있던 부분)
             }
         }
 
         if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break;
 
         if (currentDirR != 0 || currentDirC != 0) {
-            int nextR = player.r + currentDirR;
-            int nextC = player.c + currentDirC;
-            if (is_wall(nextR, nextC)) {
-                playerMoveAcc += dt * playerSpeed;
-                if (playerMoveAcc > 0.5) playerMoveAcc = 0.5;
-            }
-            else {
-                playerMoveAcc += dt * playerSpeed;
-                while (playerMoveAcc >= 1.0) {
+            playerMoveAcc += dt * playerSpeed;
+            while (playerMoveAcc >= 1.0) {
+                int targetR = player.r + currentDirR;
+                int targetC = player.c + currentDirC;
+                if (!is_wall(targetR, targetC)) {
                     playerMoveAcc -= 1.0;
-                    int targetR = player.r + currentDirR;
-                    int targetC = player.c + currentDirC;
-                    if (!is_wall(targetR, targetC)) {
-                        player.r = targetR; player.c = targetC;
-                        check_collect_and_collision();
-                    }
-                    else {
-                        break;
-                    }
+                    player.r = targetR; player.c = targetC;
+                    check_collect_and_collision();
+                }
+                else {
+                    playerMoveAcc = 0.0;
+                    break;
                 }
             }
         }
+        else {
+            playerMoveAcc = 0.0;
+        }
 
         DWORD nowTick = GetTickCount();
+
+        // NEW
+        if (modePhase < 7 && nowTick >= modeSwitchTime) {
+            modePhase++;
+            currentGhostMode = (currentGhostMode == SCATTER) ? CHASE : SCATTER;
+            if (modePhase < 7) {
+                modeSwitchTime = nowTick + phaseDurations[modePhase];
+            }
+            else {
+                currentGhostMode = CHASE;
+                modePhase = 7;
+            }
+        }
+
         if (nowTick - lastGhostMoveTick >= ghostMoveInterval) {
             for (int i = 0; i < 4; i++) move_ghost(&ghosts[i]);
             check_collect_and_collision();
