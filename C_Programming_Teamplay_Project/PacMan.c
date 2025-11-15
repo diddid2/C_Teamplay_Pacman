@@ -544,31 +544,67 @@ void show_game_over(HANDLE hOut, int finalScore) {
 }
 
 
-int main() {
-    srand((unsigned int)time(NULL));
-    setConsoleSizeAndFont(); hideCursor();
 
+
+int main() {
+
+    //시작 화면
+    srand((unsigned int)time(NULL));
+    setConsoleSizeAndFont();
+    hideCursor();
+
+    // 필수 버퍼 할당
     frameBuffer = (CHAR_INFO*)malloc(sizeof(CHAR_INFO) * SCREEN_ROWS * SCREEN_COLS);
     prevFrameBuffer = (CHAR_INFO*)malloc(sizeof(CHAR_INFO) * SCREEN_ROWS * SCREEN_COLS);
     tmpRowBuffer = (CHAR_INFO*)malloc(sizeof(CHAR_INFO) * SCREEN_COLS);
-    if (!frameBuffer || !prevFrameBuffer || !tmpRowBuffer) { fprintf(stderr, "메모리 할당 실패\n"); return 1; }
-    for (int i = 0; i < SCREEN_ROWS * SCREEN_COLS; i++) { prevFrameBuffer[i].Char.UnicodeChar = 0xFFFF; prevFrameBuffer[i].Attributes = 0xFFFF; }
+
+    if (!frameBuffer || !prevFrameBuffer || !tmpRowBuffer) {
+        fprintf(stderr, "메모리 할당 실패\n");
+        return 1;
+    }
+
+    for (int i = 0; i < SCREEN_ROWS * SCREEN_COLS; i++) {
+        prevFrameBuffer[i].Char.UnicodeChar = 0xFFFF;
+        prevFrameBuffer[i].Attributes = 0xFFFF;
+    }
 
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    for (int i = 0; i < SCREEN_ROWS * SCREEN_COLS; i++) { frameBuffer[i].Char.UnicodeChar = L' '; frameBuffer[i].Attributes = 0; }
+
+    // ------------------------------------
+    //  시작 화면 버퍼 내용 채우기
+    // ------------------------------------
+    for (int i = 0; i < SCREEN_ROWS * SCREEN_COLS; i++) {
+        frameBuffer[i].Char.UnicodeChar = L' ';
+        frameBuffer[i].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+    }
+
     wchar_t* intro1 = L"==================================";
-    wchar_t* intro2 = L"===       Pac-Man!       ===";
-    wchar_t* intro3 = L"엔터 키를 누르면 게임이 시작됩니다";
+    wchar_t* intro2 = L"===         Pac-Man!         ===";
+    wchar_t* intro3 = L"   엔터 키를 누르면 게임이 시작됩니다   ";
+
     int r0 = 10, c0 = 33;
-    for (int i = 0; intro1[i]; i++) frameBuffer[(r0)*SCREEN_COLS + c0 + i].Char.UnicodeChar = intro1[i];
+
+    for (int i = 0; intro1[i]; i++) frameBuffer[r0 * SCREEN_COLS + c0 + i].Char.UnicodeChar = intro1[i];
     for (int i = 0; intro2[i]; i++) frameBuffer[(r0 + 1) * SCREEN_COLS + c0 + i].Char.UnicodeChar = intro2[i];
     for (int i = 0; intro3[i]; i++) frameBuffer[(r0 + 2) * SCREEN_COLS + c0 + i].Char.UnicodeChar = intro3[i];
     for (int i = 0; intro1[i]; i++) frameBuffer[(r0 + 3) * SCREEN_COLS + c0 + i].Char.UnicodeChar = intro1[i];
+
     COORD bufSize = { (SHORT)SCREEN_COLS, (SHORT)SCREEN_ROWS };
     COORD bufCoord = { 0, 0 };
     SMALL_RECT writeRegion = { 0, 0, (SHORT)(SCREEN_COLS - 1), (SHORT)(SCREEN_ROWS - 1) };
+
+    // 실제 출력
     WriteConsoleOutputW(hOut, frameBuffer, bufSize, bufCoord, &writeRegion);
-    while (!(GetAsyncKeyState(VK_RETURN) & 0x8000)) Sleep(40);
+
+    // 엔터 입력 기다림
+    while (!(GetAsyncKeyState(VK_RETURN) & 0x8000))
+        Sleep(40);
+
+
+
+
+
+
 
     system("cls");
     init_world();
@@ -601,6 +637,10 @@ int main() {
         else if (GetAsyncKeyState(VK_RIGHT) & 0x8000 || GetAsyncKeyState('D') & 0x8000) { newDirR = 0; newDirC = 1; anyDirKey = true; }
         if (GetAsyncKeyState(VK_UP) & 0x8000 || GetAsyncKeyState('W') & 0x8000) { newDirR = -1; newDirC = 0; anyDirKey = true; }
         else if (GetAsyncKeyState(VK_DOWN) & 0x8000 || GetAsyncKeyState('S') & 0x8000) { newDirR = 1; newDirC = 0; anyDirKey = true; }
+
+
+
+
 
         // NEW
         if (anyDirKey) {
